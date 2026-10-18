@@ -150,6 +150,10 @@ def main():
     html = tpl.replace('__SAMPLE__', payload).replace('__TARGETS__', json.dumps(TGT, ensure_ascii=False))
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(OUT, 'w', encoding='utf-8').write(html)
+    tj = os.path.join(ROOT, 'targets', 'targets.json')
+    if os.path.exists(tj):
+        import shutil
+        shutil.copy(tj, os.path.join(os.path.dirname(OUT), 'targets.json'))
     print(f'Đã tạo {os.path.relpath(OUT, ROOT)} ({len(html) // 1024} KB)')
 
 

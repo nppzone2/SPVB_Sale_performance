@@ -828,6 +828,7 @@ $('tgtPush').onclick=async()=>{
     $('tgtIoMsg').textContent='Đã lưu target lên repo. Trang cập nhật sau khoảng 1–2 phút.';
   }catch(e){$('tgtIoMsg').textContent='Không lưu được ('+e.message+'). Kiểm tra token và quyền ghi của token.'}
 };
+(async()=>{try{const r=await fetch('targets.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();TT.forEach(t=>{TGT[t.k]=Object.assign({},j[t.k]||{})});renderAll()}catch(e){}})();
 $('tgtExport').onclick=async()=>{
   try{await needXLSX()}catch(e){$('tgtIoMsg').textContent='Không tải được thư viện Excel.';return}
   const rows=[['Khu vực','ASM','NPP','SS','Mã route','Tên route',...TT.map(x=>x.t)]];
