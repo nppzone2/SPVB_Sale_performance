@@ -812,10 +812,10 @@ let DL=null;
 (async()=>{try{DL=window.claude&&window.claude.use?await window.claude.use('downloads'):null;$('tgtExport').hidden=false}catch(e){}})();
 const GH={owner:'nppzone2',repo:'SPVB_Sale_performance',path:'targets/targets.json',branch:'main'};
 $('ghToken').value=store.get('ghToken','')?'••••••••':'';
-$('ghTokenSave').onclick=()=>{const v=$('ghToken').value.trim();if(!v||v.startsWith('••'))return;store.set('ghToken',v);$('ghToken').value='••••••••';$('tgtIoMsg').textContent='Đã lưu token trên máy này.'};
+$('ghTokenSave').onclick=()=>{const v=$('ghToken').value.replace(/[^\x21-\x7E]/g,'');if(!v||v.includes('•')){$('tgtIoMsg').textContent='Hãy dán token mới (chuỗi github_pat_…) vào ô rồi bấm Lưu token.';return}store.set('ghToken',v);$('ghToken').value='••••••••';$('tgtIoMsg').textContent='Đã lưu token trên máy này.'};
 $('tgtPush').onclick=async()=>{
-  const tok=store.get('ghToken','');
-  if(!tok){$('tgtIoMsg').textContent='Nhập token GitHub trong mục Kết nối GitHub trước.';return}
+  const tok=String(store.get('ghToken','')||'').replace(/[^\x21-\x7E]/g,'');
+  if(!tok||tok.includes('•')){$('tgtIoMsg').textContent='Chưa có token hợp lệ. Mở mục Kết nối GitHub, dán token mới và bấm Lưu token.';return}
   const api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`,hdr={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','Content-Type':'application/json'};
   const body={updatedAt:new Date().toISOString(),sale:TGT.sale,aso:TGT.aso,sdo:TGT.sdo};
   $('tgtIoMsg').textContent='Đang lưu target lên repo…';
