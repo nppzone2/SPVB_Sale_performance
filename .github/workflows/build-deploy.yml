@@ -1,0 +1,53 @@
+name: Cập nhật và đưa dashboard lên Pages
+
+# Chạy khi có file mới trong input/ (dữ liệu hoặc file target), khi sửa giao diện/engine, hoặc bấm Run workflow.
+on:
+  push:
+    branches: [main]
+    paths: ['input/**', 'src/**', 'engine/**', '.github/workflows/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cài thư viện đọc Excel
+        run: pip install openpyxl
+
+      - name: Tạo trang từ dữ liệu trong input/
+        run: python engine/build.py
+
+      - name: Bật GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Đưa lên Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
