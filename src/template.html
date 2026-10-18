@@ -32,7 +32,7 @@ header.band{background:linear-gradient(100deg,#FFFFFF 0%,#EEF8FD 55%,#D3ECF8 100
 .brand img.mark{height:52px;width:auto;flex:none;display:block}
 .actions img.lockup{height:42px;width:auto;display:block;flex:none}
 .brands{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;margin-top:10px;padding:10px 0;border-top:1px solid rgba(11,61,145,.12)}
-.brands img{height:32px;width:auto;max-width:120px;object-fit:contain;display:block}
+.brands img{height:20px;width:auto;max-width:76px;object-fit:contain;display:block}
 .top{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
 .brand{display:flex;gap:12px;align-items:center}
 .brand svg{flex:none}
@@ -311,7 +311,12 @@ body.dragging::after{content:"Thả file Excel để cập nhật dữ liệu";p
           <button class="btn sec" type="button" id="tgtImport">Nhập file target</button>
           <button class="btn sec" type="button" id="tgtExport" hidden>Tải file target (.xlsx)</button>
           <button class="btn sec" type="button" id="tgtClear">Xoá target loại này</button>
+          <button class="btn" type="button" id="tgtPush">Lưu target lên repo</button>
         </div>
+        <details class="note" style="margin-top:10px"><summary>Kết nối GitHub (một lần trên máy này)</summary>
+          <p style="margin:8px 0">Token fine-grained, chỉ cho repo SPVB_Sale_performance, quyền Contents: Read and write.</p>
+          <div class="gbar"><input type="password" id="ghToken" placeholder="github_pat_…" style="min-width:320px;padding:6px 8px;border:1px solid var(--line);border-radius:6px"><button class="btn sec" type="button" id="ghTokenSave">Lưu token</button></div>
+        </details>
         <div id="tgtClearConfirm" class="warnbox" style="margin-top:10px" hidden>Xoá toàn bộ target <b id="tgtClearLbl"></b> của các route đang hiển thị?
           <div class="fbar" style="margin-top:8px"><button class="btn" type="button" id="tgtClearYes">Xoá</button><button class="btn sec" type="button" id="tgtClearNo">Huỷ</button></div></div>
         <input type="file" id="tgtFile" accept=".xlsx,.xls,.csv" hidden>
@@ -805,6 +810,24 @@ $('tgtClearNo').onclick=()=>$('tgtClearConfirm').hidden=true;
 $('tgtClearYes').onclick=()=>{scopeRoutes().forEach(m=>delete TGT[tType][m.code]);persist(tType);$('tgtClearConfirm').hidden=true;renderTgt()};
 let DL=null;
 (async()=>{try{DL=window.claude&&window.claude.use?await window.claude.use('downloads'):null;$('tgtExport').hidden=false}catch(e){}})();
+const GH={owner:'nppzone2',repo:'SPVB_Sale_performance',path:'targets/targets.json',branch:'main'};
+$('ghToken').value=store.get('ghToken','')?'••••••••':'';
+$('ghTokenSave').onclick=()=>{const v=$('ghToken').value.trim();if(!v||v.startsWith('••'))return;store.set('ghToken',v);$('ghToken').value='••••••••';$('tgtIoMsg').textContent='Đã lưu token trên máy này.'};
+$('tgtPush').onclick=async()=>{
+  const tok=store.get('ghToken','');
+  if(!tok){$('tgtIoMsg').textContent='Nhập token GitHub trong mục Kết nối GitHub trước.';return}
+  const api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`,hdr={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','Content-Type':'application/json'};
+  const body={updatedAt:new Date().toISOString(),sale:TGT.sale,aso:TGT.aso,sdo:TGT.sdo};
+  $('tgtIoMsg').textContent='Đang lưu target lên repo…';
+  try{
+    let sha=null;const g=await fetch(api+'?ref='+GH.branch,{headers:hdr});
+    if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error('đọc '+g.status);
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(body,null,1))));
+    const p=await fetch(api,{method:'PUT',headers:hdr,body:JSON.stringify({message:'Cập nhật target '+new Date().toLocaleString('vi-VN'),content,branch:GH.branch,...(sha?{sha}:{})})});
+    if(!p.ok)throw new Error('ghi '+p.status);
+    $('tgtIoMsg').textContent='Đã lưu target lên repo. Trang cập nhật sau khoảng 1–2 phút.';
+  }catch(e){$('tgtIoMsg').textContent='Không lưu được ('+e.message+'). Kiểm tra token và quyền ghi của token.'}
+};
 $('tgtExport').onclick=async()=>{
   try{await needXLSX()}catch(e){$('tgtIoMsg').textContent='Không tải được thư viện Excel.';return}
   const rows=[['Khu vực','ASM','NPP','SS','Mã route','Tên route',...TT.map(x=>x.t)]];

@@ -135,8 +135,15 @@ def main():
         if len(found[k]) > 1:
             sys.exit(f'Có nhiều file cho {k}: {found[k]}')
         data[k] = read_table(found[k][0], KEEP[k])
-    for f in found.get('target', []):
-        read_targets(f)
+    tjson = os.path.join(ROOT, 'targets', 'targets.json')
+    if os.path.exists(tjson):
+        saved = json.load(open(tjson, encoding='utf-8'))
+        for k in ('sale', 'aso', 'sdo'):
+            TGT[k] = {str(c): v for c, v in (saved.get(k) or {}).items() if v not in ('', None)}
+        print('  targets/targets.json: ' + ', '.join(f'{k}={len(TGT.get(k, {}))}' for k in ('sale', 'aso', 'sdo')))
+    else:
+        for f in found.get('target', []):
+            read_targets(f)
     payload = base64.b64encode(gzip.compress(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'), 9)).decode()
     tpl = open(SRC, encoding='utf-8').read()
     assert tpl.count('__SAMPLE__') == 1 and tpl.count('__TARGETS__') == 1

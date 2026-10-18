@@ -1,10 +1,10 @@
 name: Cập nhật và đưa dashboard lên Pages
 
-# Chạy khi có file mới trong input/ (dữ liệu hoặc file target), khi sửa giao diện/engine, hoặc bấm Run workflow.
+# Chạy khi có file mới trong input/ hoặc targets/ (trang gửi target tự động), khi sửa giao diện/engine, hoặc bấm Run workflow.
 on:
   push:
     branches: [main]
-    paths: ['input/**', 'src/**', 'engine/**', '.github/workflows/**']
+    paths: ['input/**', 'targets/**', 'src/**', 'engine/**', '.github/workflows/**']
   workflow_dispatch:
 
 permissions:
