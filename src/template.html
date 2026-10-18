@@ -1,4 +1,4 @@
-<title>Sale Performance T10/2026</title>
+<title>Sale Performance</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
@@ -84,7 +84,13 @@ main .wrap{padding-block:20px 28px;display:flex;flex-direction:column;gap:18px}
 .pill.aq{background:color-mix(in srgb,var(--aqua) 22%,transparent);color:var(--fg)}
 .grid2{display:grid;grid-template-columns:3fr 2fr;gap:12px}
 @media (max-width:880px){.grid2{grid-template-columns:1fr}}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0;position:relative}
+.kpis,.concl{position:relative}
+.cpbtn{font:inherit;font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--star);cursor:pointer;white-space:nowrap;margin-left:auto}
+.cpbtn:hover{background:var(--brand-soft)}
+.cpbtn:disabled{opacity:.6;cursor:wait}
+.cpabs{position:absolute;top:10px;right:10px;z-index:2}
+@media print{.cpbtn{display:none}}
 .card h3{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;text-align:left;align-items:center;gap:8px;flex-wrap:wrap}
 .card h3 select,.card h3 input,.ctl{font:inherit;font-size:13px;font-weight:500;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .chartbox{position:relative;height:300px}
@@ -828,6 +834,37 @@ $('tgtPush').onclick=async()=>{
     $('tgtIoMsg').textContent='Đã lưu target lên repo. Trang cập nhật sau khoảng 1–2 phút.';
   }catch(e){$('tgtIoMsg').textContent='Không lưu được ('+e.message+'). Kiểm tra token và quyền ghi của token.'}
 };
+/* ================= COPY IMAGE ================= */
+let h2cP=null;
+function loadH2C(){return h2cP||(h2cP=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=()=>res(window.html2canvas);sc.onerror=()=>{h2cP=null;rej(new Error('load'))};document.head.appendChild(sc)}))}
+async function copyImg(el,btn){
+  const old=btn.textContent;btn.disabled=true;btn.textContent='Đang chụp…';
+  const tbls=[...el.querySelectorAll('.tbl')].map(t=>[t,t.style.maxHeight,t.style.overflow]);
+  tbls.forEach(([t])=>{t.style.maxHeight='none';t.style.overflow='visible'});
+  try{
+    const h2c=await loadH2C();
+    const bg=getComputedStyle(el).backgroundColor;
+    const canvas=await h2c(el,{scale:2,useCORS:true,backgroundColor:bg&&bg!=='rgba(0, 0, 0, 0)'?bg:'#ffffff',ignoreElements:n=>n.classList&&n.classList.contains('cpbtn')});
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+    let ok=false;
+    try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);ok=true}catch(e){}
+    if(!ok){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el.querySelector('h3')?.textContent.trim().slice(0,60)||'anh').replace(/[\\/:*?"<>|]+/g,' ')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+    btn.textContent=ok?'Đã chép ảnh':'Đã tải ảnh';
+  }catch(e){btn.textContent='Không chụp được'}
+  finally{tbls.forEach(([t,mh,ov])=>{t.style.maxHeight=mh;t.style.overflow=ov})}
+  setTimeout(()=>{btn.textContent=old;btn.disabled=false},1600);
+}
+function addCpBtns(root){
+  (root||document).querySelectorAll('.card,.kpis,.concl').forEach(el=>{
+    if(el.querySelector(':scope > h3 > .cpbtn,:scope > .cpbtn'))return;
+    const b=document.createElement('button');b.type='button';b.className='cpbtn';b.textContent='Copy ảnh';b.title='Chép hình ảnh mục này';
+    b.onclick=e=>{e.stopPropagation();copyImg(el,b)};
+    const h=el.querySelector(':scope > h3');
+    if(h)h.appendChild(b);else{b.classList.add('cpabs');el.appendChild(b)}
+  })
+}
+addCpBtns();
+new MutationObserver(()=>addCpBtns()).observe(document.body,{childList:true,subtree:true});
 (async()=>{try{const r=await fetch('targets.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();TT.forEach(t=>{TGT[t.k]=Object.assign({},j[t.k]||{})});renderAll()}catch(e){}})();
 $('tgtExport').onclick=async()=>{
   try{await needXLSX()}catch(e){$('tgtIoMsg').textContent='Không tải được thư viện Excel.';return}
