@@ -77,11 +77,11 @@ main .wrap{padding-block:20px 28px;display:flex;flex-direction:column;gap:18px}
 .bar i{display:block;height:100%;border-radius:6px;background:var(--brand);max-width:100%}
 .bar .tg{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.6}
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:none;letter-spacing:0;white-space:nowrap}
-.pill.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
-.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
-.pill.bad{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.pill.good{background:var(--tint-good-16);color:var(--good)}
+.pill.warn{background:var(--tint-warn-18);color:var(--warn)}
+.pill.bad{background:var(--tint-bad-14);color:var(--bad)}
 .pill.na{background:var(--chip);color:var(--muted)}
-.pill.aq{background:color-mix(in srgb,var(--aqua) 22%,transparent);color:var(--fg)}
+.pill.aq{background:var(--tint-aqua-22);color:var(--fg)}
 .grid2{display:grid;grid-template-columns:3fr 2fr;gap:12px}
 @media (max-width:880px){.grid2{grid-template-columns:1fr}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0;position:relative}
@@ -102,7 +102,7 @@ td.n,th.n{text-align:center;white-space:nowrap}
 th.n .thfw{justify-content:center}
 th.n .thtl{text-align:center}
 tr:hover td{background:var(--brand-soft)}
-.tbl tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--chip) 60%,transparent)}
+.tbl tbody tr:nth-child(even) td{background:var(--tint-chip-60)}
 .tbl tbody tr:hover td{background:var(--brand-soft)}
 .tbl thead th{background:var(--chip);border-bottom:2px solid var(--brand)}
 .tbl th.gp{background:var(--brand-soft);color:var(--brand-deep);font-size:12px;text-transform:none;letter-spacing:0;text-align:center;border-bottom:1px solid var(--line);font-weight:700}
@@ -114,9 +114,9 @@ tr:hover td{background:var(--brand-soft)}
 .achc{display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;font-weight:700;border-radius:6px;padding:2px 6px;margin:-2px -6px}
 .achc b{min-width:58px;text-align:right}
 .achc.good{color:var(--good)}.achc.warn{color:var(--warn)}.achc.bad{color:var(--bad)}.achc.na{color:var(--muted)}
-td:has(> .achc.good){background:color-mix(in srgb,var(--good) 14%,transparent)!important}
-td:has(> .achc.warn){background:color-mix(in srgb,var(--warn) 16%,transparent)!important}
-td:has(> .achc.bad){background:color-mix(in srgb,var(--bad) 12%,transparent)!important}
+td:has(> .achc.good){background:var(--tint-good-14)!important}
+td:has(> .achc.warn){background:var(--tint-warn-16)!important}
+td:has(> .achc.bad){background:var(--tint-bad-12)!important}
 .achc .mini{width:64px}
 .tbl tbody td{font-variant-numeric:tabular-nums}
 tfoot td{font-weight:700;border-top:2px solid var(--line);position:sticky;bottom:0;background:var(--surface)}
@@ -125,7 +125,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--line);position:sticky;bottom
 .concl{border-left:4px solid var(--star);background:var(--surface);border-radius:0 10px 10px 0;padding:12px 16px}
 .concl h4{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--star)}
 .note{font-size:12.5px;color:var(--muted)}
-.warnbox{background:color-mix(in srgb,var(--warn) 12%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:10px;padding:10px 14px;font-size:13px}
+.warnbox{background:var(--tint-warn-12);border:1px solid var(--tint-warn-40);border-radius:10px;padding:10px 14px;font-size:13px}
 .gbar .f{display:flex;flex-direction:column;gap:4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;min-width:0}
 .ms{position:relative}
 .ms>button{font:inherit;font-size:13px;min-width:140px;max-width:220px;text-align:left;padding:7px 28px 7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;letter-spacing:0;position:relative}
@@ -195,6 +195,11 @@ body.dragging::after{content:"Thả file Excel để cập nhật dữ liệu";p
 .tg-lbls span{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
 .tg-lbls span:first-child{transform:none}
 .tg-lbls span.now{color:var(--fg);font-weight:700}
+
+/* tint tokens (không dùng color-mix để chụp ảnh được) */
+:root{--tint-aqua-22:rgba(91,192,222,0.22);--tint-bad-12:rgba(215,38,61,0.12);--tint-bad-14:rgba(215,38,61,0.14);--tint-chip-60:rgba(234,245,250,0.60);--tint-good-14:rgba(26,158,119,0.14);--tint-good-16:rgba(26,158,119,0.16);--tint-warn-12:rgba(224,154,0,0.12);--tint-warn-16:rgba(224,154,0,0.16);--tint-warn-18:rgba(224,154,0,0.18);--tint-warn-40:rgba(224,154,0,0.40)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tint-aqua-22:rgba(127,208,238,0.22);--tint-bad-12:rgba(255,100,112,0.12);--tint-bad-14:rgba(255,100,112,0.14);--tint-chip-60:rgba(21,48,74,0.60);--tint-good-14:rgba(60,199,154,0.14);--tint-good-16:rgba(60,199,154,0.16);--tint-warn-12:rgba(242,177,60,0.12);--tint-warn-16:rgba(242,177,60,0.16);--tint-warn-18:rgba(242,177,60,0.18);--tint-warn-40:rgba(242,177,60,0.40)}}
+:root[data-theme="dark"]{--tint-aqua-22:rgba(127,208,238,0.22);--tint-bad-12:rgba(255,100,112,0.12);--tint-bad-14:rgba(255,100,112,0.14);--tint-chip-60:rgba(21,48,74,0.60);--tint-good-14:rgba(60,199,154,0.14);--tint-good-16:rgba(60,199,154,0.16);--tint-warn-12:rgba(242,177,60,0.12);--tint-warn-16:rgba(242,177,60,0.16);--tint-warn-18:rgba(242,177,60,0.18);--tint-warn-40:rgba(242,177,60,0.40)}
 </style>
 
 <header class="band">
@@ -861,11 +866,12 @@ async function saveImg(el,btn){
   try{
     const h2c=await loadH2C();
     const bg=getComputedStyle(el).backgroundColor;
-    const canvas=await h2c(el,{scale:2,useCORS:true,backgroundColor:bg&&bg!=='rgba(0, 0, 0, 0)'?bg:'#ffffff',ignoreElements:n=>n.classList&&n.classList.contains('cpbtn')});
+    const H=Math.max(el.scrollHeight,el.offsetHeight,1),W=Math.max(el.offsetWidth,1),sc=Math.max(1,Math.min(2,6000/H,6000/W));
+    const canvas=await h2c(el,{scale:sc,logging:false,useCORS:true,backgroundColor:bg&&bg!=='rgba(0, 0, 0, 0)'?bg:'#ffffff',ignoreElements:n=>n.classList&&n.classList.contains('cpbtn')});
     const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el.querySelector('h3')?.textContent.trim().slice(0,60)||'anh').replace(/[\\/:*?"<>|]+/g,' ')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     btn.textContent='Đã lưu ảnh';
-  }catch(e){btn.textContent='Không chụp được'}
+  }catch(e){console.error('lưu ảnh',e);btn.textContent='Lỗi: '+String(e&&e.message||e).slice(0,36)}
   finally{tbls.forEach(([t,mh,ov])=>{t.style.maxHeight=mh;t.style.overflow=ov})}
   setTimeout(()=>{btn.textContent=old;btn.disabled=false},1600);
 }
