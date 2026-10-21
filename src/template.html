@@ -107,6 +107,10 @@ tr:hover td{background:var(--brand-soft)}
 .tbl thead th{background:var(--chip);border-bottom:2px solid var(--brand)}
 .tbl th.gp{background:var(--brand-soft);color:var(--brand-deep);font-size:12px;text-transform:none;letter-spacing:0;text-align:center;border-bottom:1px solid var(--line);font-weight:700}
 .tbl td.gs,.tbl th.gs{border-left:2px solid var(--brand)}
+.tbl tbody tr.clk{cursor:pointer}
+.tbl tbody tr.sel td{background:var(--brand-soft)!important;font-weight:600}
+.skuDet{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.detH{margin:0 0 8px;font-size:14px}
 .achc{display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;font-weight:700;border-radius:6px;padding:2px 6px;margin:-2px -6px}
 .achc b{min-width:58px;text-align:right}
 .achc.good{color:var(--good)}.achc.warn{color:var(--warn)}.achc.bad{color:var(--bad)}.achc.na{color:var(--muted)}
@@ -517,13 +521,14 @@ const trunc=s=>{s=String(s);return s.length>24?s.slice(0,23)+'…':s};
 const baseOpts=(horiz,stacked)=>({responsive:true,maintainAspectRatio:false,indexAxis:horiz?'y':'x',
   plugins:{legend:{position:'bottom',labels:{boxWidth:12,boxHeight:12}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf.format(c.parsed[horiz?'x':'y'])}`}}},
   scales:{x:{stacked,grid:{color:css('--line')},ticks:{callback:function(v){return horiz?nf.format(v):trunc(this.getLabelForValue(v))}}},y:{stacked,grid:{display:!horiz,color:css('--line')},ticks:{callback:function(v){return horiz?trunc(this.getLabelForValue(v)):nf.format(v)}}}}});
-function table(el,cols,rows,sortKey,desc=true,foot){
+function table(el,cols,rows,sortKey,desc=true,foot,onRow){
   let sk=sortKey,sd=desc;
   const gpOf=c=>c.gp||'',hasG=cols.some(c=>c.gp),gsf=cols.map((c,i)=>hasG&&i>0&&gpOf(c)!==gpOf(cols[i-1])?' gs':'');
   let grpRow='';if(hasG){let h='',i=0;while(i<cols.length){let j=i;while(j+1<cols.length&&gpOf(cols[j+1])===gpOf(cols[i]))j++;h+=`<th colspan="${j-i+1}" class="gp${i>0?' gs':''}">${esc(gpOf(cols[i]))}</th>`;i=j+1}grpRow=`<tr>${h}</tr>`}
   const draw=()=>{const rs=[...rows].sort((a,b)=>{const x=a[sk],y=b[sk];return (typeof x==='number'?x-y:String(x).localeCompare(String(y),'vi'))*(sd?-1:1)});
     const LIM=500,more=rs.length>LIM,hasF=cols.some(c=>c.flt);
-    el.innerHTML=`<table><thead>${grpRow}<tr>${cols.map((c,ci)=>`<th class="${c.n||c.ctr?'n':''}${gsf[ci]}" data-k="${c.k}">${hasF?`<div class="thfw">${c.flt?`<select class="thf" data-k="${c.k}" aria-label="Lọc ${esc(c.t)}">${c.flt.opts.map(([v,l])=>`<option value="${v}"${v===c.flt.val?' selected':''}>${l}</option>`).join('')}</select>`:''}</div>`:''}<div class="thtl">${c.t}${c.k===sk?(sd?' ↓':' ↑'):''}</div></th>`).join('')}</tr></thead><tbody>${(more?rs.slice(0,LIM):rs).map((r,ri)=>`<tr>${cols.map((c,ci)=>`<td class="${c.n||c.ctr?'n':''}${gsf[ci]}">${c.k==='stt'?ri+1:c.f?c.f(r[c.k],r):esc(r[c.k])}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${cols.length}" class="note">Không có dữ liệu phù hợp.</td></tr>`}${more?`<tr><td colspan="${cols.length}" class="note">Hiển thị ${LIM}/${nf.format(rs.length)} dòng theo thứ tự đang sắp xếp. Dùng bộ lọc hoặc ô tìm kiếm để xem dòng khác.</td></tr>`:''}</tbody>${foot?`<tfoot><tr>${foot.map((v,i)=>`<td class="${cols[i]&&(cols[i].n||cols[i].ctr)?'n':''}">${v}</td>`).join('')}</tr></tfoot>`:''}</table>`;
+    el.innerHTML=`<table><thead>${grpRow}<tr>${cols.map((c,ci)=>`<th class="${c.n||c.ctr?'n':''}${gsf[ci]}" data-k="${c.k}">${hasF?`<div class="thfw">${c.flt?`<select class="thf" data-k="${c.k}" aria-label="Lọc ${esc(c.t)}">${c.flt.opts.map(([v,l])=>`<option value="${v}"${v===c.flt.val?' selected':''}>${l}</option>`).join('')}</select>`:''}</div>`:''}<div class="thtl">${c.t}${c.k===sk?(sd?' ↓':' ↑'):''}</div></th>`).join('')}</tr></thead><tbody>${(more?rs.slice(0,LIM):rs).map((r,ri)=>`<tr${onRow?` data-k="${esc(String(r.k))}" class="clk"`:''}>${cols.map((c,ci)=>`<td class="${c.n||c.ctr?'n':''}${gsf[ci]}">${c.k==='stt'?ri+1:c.f?c.f(r[c.k],r):esc(r[c.k])}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${cols.length}" class="note">Không có dữ liệu phù hợp.</td></tr>`}${more?`<tr><td colspan="${cols.length}" class="note">Hiển thị ${LIM}/${nf.format(rs.length)} dòng theo thứ tự đang sắp xếp. Dùng bộ lọc hoặc ô tìm kiếm để xem dòng khác.</td></tr>`:''}</tbody>${foot?`<tfoot><tr>${foot.map((v,i)=>`<td class="${cols[i]&&(cols[i].n||cols[i].ctr)?'n':''}">${v}</td>`).join('')}</tr></tfoot>`:''}</table>`;
+    if(onRow)el.querySelectorAll('tbody tr[data-k]').forEach(tr=>tr.onclick=()=>{el.querySelectorAll('tbody tr.sel').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');onRow(rows.find(x=>String(x.k)===tr.dataset.k))});
     el.querySelectorAll('select.thf').forEach(sl=>{const c=cols.find(x=>x.k===sl.dataset.k);sl.onclick=e=>e.stopPropagation();sl.onchange=()=>c.flt.on(sl.value)});
     el.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k==='stt')return;if(k===sk)sd=!sd;else{sk=k;sd=true}draw()})};
   draw();
@@ -724,6 +729,14 @@ function renderClubCov(){
     {k:'ach',t:'% thực đạt',n:1,f:v=>achPill(v)},
     {k:'rem',t:'Còn lại',n:1,f:(v,r)=>r.g?nf.format(v):'—'}],rows,'g');
 }
+function showSkuDet(i,code){
+  const box=$('trkDet_'+i),s=SDO_SKUS[i];
+  const m=new Map();skuRows(s).filter(r=>r.route===code).forEach(r=>{const o=m.get(r.kh)||{kh:r.kh,nm:r.khName,v:0};o.v+=r.v;m.set(r.kh,o)});
+  const list=[...m.values()];
+  box.hidden=false;
+  box.innerHTML=`<h4 class="detH">Khách hàng đã mua · Route ${esc(code)} · ${nf.format(list.length)} KH · ${nf.format(sum(list,x=>x.v))} thùng</h4><div class="tbl" id="trkDetTbl_${i}"></div>`;
+  table($('trkDetTbl_'+i),[{k:'kh',t:'Mã KH'},{k:'nm',t:'Tên khách hàng'},{k:'v',t:'Số lượng (thùng)',n:1,f:v=>nf.format(v)}],list,'v',true);
+}
 function renderSdo(keepPop){
   if(!keepPop)closeMs();
   const tv=timeGone(),all=scopeSale(),rows=sdoRows();
@@ -735,11 +748,11 @@ function renderSdo(keepPop){
   table($('sdoSkuTbl'),[{k:'nm',t:'SKU theo dõi'},{k:'g',t:'Target SDO',n:1,f:v=>v?nf.format(v):'—'},{k:'a',t:'Thực đạt bao phủ',n:1,f:v=>nf.format(v)},
     {k:'rem',t:'Còn lại',n:1,f:(v,r)=>r.g?nf.format(v):'—'},
     {k:'ach',t:'% thực đạt',n:1,f:v=>achPill(v)},{k:'v',t:'Thực đạt Volume',n:1,f:v=>nf.format(v)}],sk,'nm',false);
-  $('sdoTrack').innerHTML=sk.map((x,i)=>`<div class="card"><h3><span>${esc(x.nm)}</span><span class="note">${nf.format(x.a)}${x.g?' / '+nf.format(x.g):''} điểm · ${x.g?pct(x.ach):'chưa nhập target'}</span></h3><div class="tbl skuTbl" id="trk_${i}"></div></div>`).join('');
+  $('sdoTrack').innerHTML=sk.map((x,i)=>`<div class="card"><h3><span>${esc(x.nm)}</span><span class="note">${nf.format(x.a)}${x.g?' / '+nf.format(x.g):''} điểm · ${x.g?pct(x.ach):'chưa nhập target'}</span></h3><div class="tbl skuTbl" id="trk_${i}"></div><div class="skuDet" id="trkDet_${i}" hidden></div></div>`).join('');
   sk.forEach((x,i)=>{const G=group(skuRows(SDO_SKUS[i]),'route');
     const rt=scopeRoutes().map(m=>{const rs=G.get(m.code)||[],g=tval('sdo',sdoKey(m.code,SDO_SKUS[i])),a=uniqKh(rs);return{k:m.code,g,a,r:g?Math.max(g-a,0):0,p:g?a/g:-1,v:sum(rs,r=>r.v)}});
     table($('trk_'+i),[{k:'k',t:'Route'},{k:'g',t:'Target SDO',n:1,f:v=>v?nf.format(v):'—'},{k:'a',t:'Thực đạt bao phủ',n:1,f:v=>nf.format(v)},
-      {k:'r',t:'Còn lại',n:1,f:(v,r)=>r.g?nf.format(v):'—'},{k:'p',t:'% bao phủ',n:1,f:v=>achPill(v)},{k:'v',t:'Thực đạt Volume',n:1,f:v=>nf.format(v)}],rt,'a');});
+      {k:'r',t:'Còn lại',n:1,f:(v,r)=>r.g?nf.format(v):'—'},{k:'p',t:'% bao phủ',n:1,f:v=>achPill(v)},{k:'v',t:'Thực đạt Volume',n:1,f:v=>nf.format(v)}],rt,'a',true,undefined,r=>showSkuDet(i,r.k));});
   const dim=$('sdoDim').value;
   const g=[...group(rows,dim)].map(([kk,rs])=>({k:kk||'—',s:uniqKh(rs)})).sort((a,b)=>b.s-a.s).slice(0,15);
   $('sdoBarBox').style.height=Math.max(260,g.length*28+60)+'px';
