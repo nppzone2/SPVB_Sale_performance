@@ -278,6 +278,10 @@ body.dragging::after{content:"Thả file Excel để cập nhật dữ liệu";p
     <div class="intro"><p id="srcIntro"></p></div>
     <div id="srcWarn"></div>
     <div class="kpis" id="srcCards" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))"></div>
+    <div class="card" style="margin-bottom:12px"><h3><span>Gửi dữ liệu lên repo (cho mọi máy)</span></h3>
+      <p class="note" style="margin:0 0 10px">Chọn file BC Sản lượng, DS Loyalty hoặc Danh sách ASO. File sẽ được thay thế trong repo và trang tự cập nhật sau khoảng 2–3 phút. Cần token GitHub trong mục Kết nối GitHub ở tab Nhập Target.</p>
+      <div class="gbar"><button class="btn" type="button" id="srcPush">Chọn file và gửi lên repo</button><input type="file" id="srcRepoFile" accept=".xlsx" hidden></div>
+      <p class="note" id="srcPushMsg" style="margin:10px 0 0"></p></div>
     <div class="fbar" style="justify-content:flex-end"><button class="btn sec" type="button" id="srcReset">Xoá file đã tải, quay về dữ liệu mẫu</button></div>
     <input type="file" id="srcFile" accept=".xlsx,.xls,.xlsb,.csv" hidden>
     <div class="card"><h3><span>Chương trình trong file Loyalty</span><span class="note" id="srcProgNote"></span></h3><div class="tbl" id="srcProgs"></div></div>
@@ -884,6 +888,27 @@ const SRC=[{k:'sale',t:'Báo cáo sản lượng theo KH theo SKU',use:'Sale out
    cols:[['region','Khu vực'],['area','Area'],['nppName','NPP'],['route','Route code'],['dcr','DCR'],['kh','Mã KH'],['khName','Tên KH'],['seg','Segment'],['club','Club']]}];
 let srcPick='loy';const PICK=['aso','loy','tgt','sale'];
 let upKind=null;$('srcFile').onchange=e=>handleFiles(e.target.files,upKind);
+const REPO_NAMES={sale:'BC_San_luong_theo_KH_theo_SKU_-_THANG_2026.10.xlsx',loy:'DS_ASO_Tham_gia_Loyalty_DMP_-_THANG_2026.10.xlsx',aso:'Danh_sach_chi_tiet_ASO_-_THANG_2026.10.xlsx'};
+const kindByName=n=>{const x=norm(n);if(x.includes('san luong')||x.includes('sku'))return'sale';if(x.includes('loyal'))return'loy';if(x.includes('danh sach'))return'aso';return null};
+const srcMsgSet=t=>{const el=$('srcPushMsg');if(el)el.textContent=t};
+$('srcPush').onclick=()=>$('srcRepoFile').click();
+$('srcRepoFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const kind=kindByName(f.name);
+  const tok=String(store.get('ghToken','')||'').replace(/[^\x21-\x7E]/g,'');
+  if(!kind){srcMsgSet('Tên file chưa nhận ra. Tên cần chứa "San_luong" (BC Sản lượng), "Loyalty" (DS Loyalty) hoặc "Danh_sach" (Danh sách ASO).');return}
+  if(!tok||tok.includes('•')){srcMsgSet('Chưa có token hợp lệ. Mở mục Kết nối GitHub ở tab Nhập Target, dán token và bấm Lưu token.');return}
+  const path='input/'+REPO_NAMES[kind],api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}`,hdr={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','Content-Type':'application/json'};
+  srcMsgSet(`Đang gửi ${f.name} (${(f.size/1048576).toFixed(1)} MB)…`);
+  try{
+    let sha=null;const g=await fetch(api+'?ref='+GH.branch,{headers:hdr});
+    if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error('đọc '+g.status);
+    const buf=new Uint8Array(await f.arrayBuffer());let bin='';for(let i=0;i<buf.length;i+=0x8000)bin+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));
+    const p=await fetch(api,{method:'PUT',headers:hdr,body:JSON.stringify({message:`Cập nhật dữ liệu ${kind} ${new Date().toLocaleString('vi-VN')}`,content:btoa(bin),branch:GH.branch,...(sha?{sha}:{})})});
+    if(!p.ok)throw new Error('ghi '+p.status);
+    srcMsgSet('Đã gửi lên repo. Trang sẽ cập nhật sau khoảng 2–3 phút (làm mới trang để xem).');
+  }catch(err){srcMsgSet('Không gửi được ('+err.message+'). Kiểm tra token và quyền ghi của token.')}
+};
 $('srcReset').onclick=async()=>{const S=await getSample();for(const k of ['sale','loy','aso']){const o=toObjs(S[k]);ingest(k,o.rows);srcInfo[k]='mẫu';srcMeta[k]=null}srcMeta.tgt=null;srcMsgs=[];srcBad=[];updBadge();await cacheClear();buildRM();buildGlobal();renderAll()};
 $('srcSearch').oninput=debounce(()=>renderSrcTable());
 const SLOTS=[{k:'aso',use:'ASO base cho độ phủ (ASO Coverage, SDO)',hint:'Cột cần có: Mã KH, Route Code, Trang thai KH'},
