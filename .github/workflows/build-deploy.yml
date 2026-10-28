@@ -1,6 +1,6 @@
 name: Cập nhật và đưa dashboard lên Pages
 
-# Chạy khi có file mới trong input/ hoặc targets/ (trang gửi target tự động), khi sửa giao diện/engine, hoặc bấm Run workflow.
+# Chạy khi có file mới trong input/ hoặc targets/ (trang gửi file và target tự động), khi sửa giao diện/engine, hoặc bấm Run workflow.
 on:
   push:
     branches: [main]
@@ -26,10 +26,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Cài thư viện đọc Excel
-        run: pip install openpyxl
+      - name: Cài thư viện
+        run: pip install openpyxl cryptography
 
-      - name: Tạo trang từ dữ liệu trong input/
+      - name: Mã hoá và tạo trang từ dữ liệu trong input/
+        env:
+          SPVB_PASSWORD: ${{ secrets.SPVB_PASSWORD }}
         run: python engine/build.py
 
       - name: Bật GitHub Pages

@@ -1,15 +1,22 @@
 # SPVB Sale Performance
 
-Dashboard Sale Performance tháng 10/2026, đưa lên GitHub Pages.
+Dashboard Sale Performance tháng 10/2026, đưa lên GitHub Pages. Dữ liệu được mã hoá bằng mật khẩu nhóm.
+
+## Cài đặt một lần
+1. Vào **Settings → Secrets and variables → Actions → New repository secret**, tạo secret tên `SPVB_PASSWORD` với mật khẩu nhóm.
+2. Mật khẩu này cũng là mật khẩu mở dữ liệu trên trang. Chia sẻ cho người được phép xem.
 
 ## Cập nhật dữ liệu
-1. Đặt ba file vào thư mục `input/` (tên file có chứa: `San_luong`/`SKU`, `Danh_sach`, `Loyalty`).
-2. Đẩy lên nhánh `main`. Workflow sẽ tự tạo lại trang và đưa lên Pages.
-3. Target: vào tab **Nhập Target**, nhập số rồi bấm **Lưu target lên repo**. Lần đầu cần nhập token GitHub trong mục *Kết nối GitHub*. Target được lưu vào `targets/targets.json` và trang tự cập nhật.
+1. Mở trang dashboard → tab **Dữ liệu nguồn** → **Chọn file và gửi lên repo**.
+2. Chọn file Excel (BC Sản lượng, DS Loyalty hoặc Danh sách ASO). Trang mã hoá file ngay trên máy rồi gửi lên `input/`.
+3. Đợi khoảng 2–3 phút để workflow build lại, sau đó làm mới trang.
+
+## Target
+Tab **Nhập Target** → **Lưu target lên repo** (cần token GitHub đã lưu trên máy). Target được mã hoá và lưu vào `targets/targets.enc`.
 
 ## Cấu trúc
-- `input/` — file Excel đầu vào
+- `input/*.xlsx.enc` — dữ liệu đã mã hoá
+- `targets/targets.enc` — target đã mã hoá
 - `src/template.html` — giao diện và cách tính (chạy trên trình duyệt)
-- `targets/targets.json` — target do trang gửi lên
-- `engine/build.py` — đọc `input/`, nhúng dữ liệu vào trang, tạo `site/index.html`
+- `engine/build.py` — giải mã input, tạo `site/data.enc` và `site/index.html`
 - `.github/workflows/build-deploy.yml` — tự động build và deploy

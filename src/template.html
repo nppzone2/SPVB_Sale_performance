@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Sale Performance</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -200,6 +201,10 @@ body.dragging::after{content:"Thả file Excel để cập nhật dữ liệu";p
 :root{--tint-aqua-22:rgba(91,192,222,0.22);--tint-bad-12:rgba(215,38,61,0.12);--tint-bad-14:rgba(215,38,61,0.14);--tint-chip-60:rgba(234,245,250,0.60);--tint-good-14:rgba(26,158,119,0.14);--tint-good-16:rgba(26,158,119,0.16);--tint-warn-12:rgba(224,154,0,0.12);--tint-warn-16:rgba(224,154,0,0.16);--tint-warn-18:rgba(224,154,0,0.18);--tint-warn-40:rgba(224,154,0,0.40)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tint-aqua-22:rgba(127,208,238,0.22);--tint-bad-12:rgba(255,100,112,0.12);--tint-bad-14:rgba(255,100,112,0.14);--tint-chip-60:rgba(21,48,74,0.60);--tint-good-14:rgba(60,199,154,0.14);--tint-good-16:rgba(60,199,154,0.16);--tint-warn-12:rgba(242,177,60,0.12);--tint-warn-16:rgba(242,177,60,0.16);--tint-warn-18:rgba(242,177,60,0.18);--tint-warn-40:rgba(242,177,60,0.40)}}
 :root[data-theme="dark"]{--tint-aqua-22:rgba(127,208,238,0.22);--tint-bad-12:rgba(255,100,112,0.12);--tint-bad-14:rgba(255,100,112,0.14);--tint-chip-60:rgba(21,48,74,0.60);--tint-good-14:rgba(60,199,154,0.14);--tint-good-16:rgba(60,199,154,0.16);--tint-warn-12:rgba(242,177,60,0.12);--tint-warn-16:rgba(242,177,60,0.16);--tint-warn-18:rgba(242,177,60,0.18);--tint-warn-40:rgba(242,177,60,0.40)}
+.pwmask{position:fixed;inset:0;background:rgba(7,21,33,.55);display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
+.pwbox{background:var(--surface);border-radius:14px;padding:20px;max-width:380px;width:100%;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.pwbox h3{margin:0 0 8px;font-size:16px}
+.pwbox input{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);box-sizing:border-box}
 </style>
 
 <header class="band">
@@ -352,7 +357,28 @@ body.dragging::after{content:"Thả file Excel để cập nhật dữ liệu";p
 <script>
 const SAMPLE_GZ="__SAMPLE__";
 let SAMPLE=null;
-async function getSample(){if(SAMPLE)return SAMPLE;const b=Uint8Array.from(atob(SAMPLE_GZ),c=>c.charCodeAt(0));SAMPLE=JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());return SAMPLE}
+/* ===== Mã hoá dữ liệu (AES-GCM, khoá PBKDF2-SHA256; cùng định dạng với engine/build.py) ===== */
+const ENC_ITER=200000;
+const bytesToB64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const b64ToBytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function encKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:ENC_ITER,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function encryptRaw(pw,u8){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await encKey(pw,salt),u8));const out=new Uint8Array(28+ct.length);out.set(salt,0);out.set(iv,16);out.set(ct,28);return out}
+async function decryptRaw(pw,u8){const key=await encKey(pw,u8.slice(0,16));return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(16,28)},key,u8.slice(28)))}
+async function encryptJSON(pw,obj){const gz=new Uint8Array(await new Response(new Blob([new TextEncoder().encode(JSON.stringify(obj))]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());return encryptRaw(pw,gz)}
+async function decryptJSON(pw,u8){const pt=await decryptRaw(pw,u8);return JSON.parse(await new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).text())}
+function askPassword(msg){return new Promise(res=>{const o=document.createElement('div');o.className='pwmask';o.innerHTML=`<div class="pwbox" role="dialog" aria-modal="true"><h3>Mật khẩu dữ liệu</h3><p class="note" id="pwMsg">${msg||'Dữ liệu được mã hoá. Nhập mật khẩu nhóm để xem.'}</p><input type="password" id="pwIn" autocomplete="current-password" placeholder="Mật khẩu"><div class="gbar" style="margin-top:12px"><button class="btn" type="button" id="pwOk">Mở dữ liệu</button></div></div>`;document.body.appendChild(o);const inp=o.querySelector('#pwIn');setTimeout(()=>inp.focus(),0);const go=()=>{const v=inp.value;if(!v)return;o.remove();res(v)};o.querySelector('#pwOk').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()}})}
+async function ensurePw(msg){return store.get('pw','')||await askPassword(msg||'Nhập mật khẩu nhóm để mã hoá trước khi gửi.')}
+async function getSample(){
+  if(SAMPLE)return SAMPLE;
+  if(SAMPLE_GZ){const b=b64ToBytes(SAMPLE_GZ);SAMPLE=JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());return SAMPLE}
+  let pw=store.get('pw','')||'',msg='';
+  for(;;){
+    if(!pw)pw=await askPassword(msg);
+    let bytes;try{const r=await fetch('data.enc',{cache:'no-store'});if(!r.ok)throw new Error('Không tải được dữ liệu ('+r.status+')');bytes=new Uint8Array(await r.arrayBuffer())}catch(e){throw e}
+    try{const S=await decryptJSON(pw,bytes);store.set('pw',pw);SAMPLE=S;if(S.targets)TT.forEach(t=>{TGT[t.k]=Object.assign({},S.targets[t.k]||{})});return S}
+    catch(e){store.set('pw','');pw='';msg='Mật khẩu chưa đúng. Thử lại.'}
+  }
+}
 let xlsxP=null;
 function needXLSX(){if(window.XLSX&&XLSX.read)return Promise.resolve();if(!xlsxP)xlsxP=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=res;sc.onerror=()=>{xlsxP=null;rej(new Error('xlsx'))};document.head.appendChild(sc)});return xlsxP}
 const debounce=(fn,ms=200)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
@@ -838,19 +864,19 @@ $('tgtClearNo').onclick=()=>$('tgtClearConfirm').hidden=true;
 $('tgtClearYes').onclick=()=>{scopeRoutes().forEach(m=>delete TGT[tType][m.code]);persist(tType);$('tgtClearConfirm').hidden=true;renderTgt()};
 let DL=null;
 (async()=>{try{DL=window.claude&&window.claude.use?await window.claude.use('downloads'):null;$('tgtExport').hidden=false}catch(e){}})();
-const GH={owner:'nppzone2',repo:'SPVB_Sale_performance',path:'targets/targets.json',branch:'main'};
+const GH={owner:'nppzone2',repo:'SPVB_Sale_performance',path:'targets/targets.enc',branch:'main'};
 $('ghToken').value=store.get('ghToken','')?'••••••••':'';
 $('ghTokenSave').onclick=()=>{const v=$('ghToken').value.replace(/[^\x21-\x7E]/g,'');if(!v||v.includes('•')){$('tgtIoMsg').textContent='Hãy dán token mới (chuỗi github_pat_…) vào ô rồi bấm Lưu token.';return}store.set('ghToken',v);$('ghToken').value='••••••••';$('tgtIoMsg').textContent='Đã lưu token trên máy này.'};
 $('tgtPush').onclick=async()=>{
   const tok=String(store.get('ghToken','')||'').replace(/[^\x21-\x7E]/g,'');
   if(!tok||tok.includes('•')){$('tgtIoMsg').textContent='Chưa có token hợp lệ. Mở mục Kết nối GitHub, dán token mới và bấm Lưu token.';return}
   const api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`,hdr={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','Content-Type':'application/json'};
-  const body={updatedAt:new Date().toISOString(),sale:TGT.sale,aso:TGT.aso,sdo:TGT.sdo};
   $('tgtIoMsg').textContent='Đang lưu target lên repo…';
   try{
     let sha=null;const g=await fetch(api+'?ref='+GH.branch,{headers:hdr});
     if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error('đọc '+g.status);
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(body,null,1))));
+    const pw=await ensurePw();
+    const content=bytesToB64(await encryptJSON(pw,{updatedAt:new Date().toISOString(),sale:TGT.sale,aso:TGT.aso,sdo:TGT.sdo}));
     const p=await fetch(api,{method:'PUT',headers:hdr,body:JSON.stringify({message:'Cập nhật target '+new Date().toLocaleString('vi-VN'),content,branch:GH.branch,...(sha?{sha}:{})})});
     if(!p.ok)throw new Error('ghi '+p.status);
     $('tgtIoMsg').textContent='Đã lưu target lên repo. Trang cập nhật sau khoảng 1–2 phút.';
@@ -888,7 +914,6 @@ function addCpBtns(root){
 }
 addCpBtns();
 new MutationObserver(()=>addCpBtns()).observe(document.body,{childList:true,subtree:true});
-(async()=>{try{const r=await fetch('targets.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();TT.forEach(t=>{TGT[t.k]=Object.assign({},j[t.k]||{})});renderAll()}catch(e){}})();
 $('tgtExport').onclick=async()=>{
   try{await needXLSX()}catch(e){$('tgtIoMsg').textContent='Không tải được thư viện Excel.';return}
   const rows=[['Khu vực','ASM','NPP','SS','Mã route','Tên route',...TT.map(x=>x.t)]];
@@ -907,7 +932,7 @@ const SRC=[{k:'sale',t:'Báo cáo sản lượng theo KH theo SKU',use:'Sale out
    cols:[['region','Khu vực'],['area','Area'],['nppName','NPP'],['route','Route code'],['dcr','DCR'],['kh','Mã KH'],['khName','Tên KH'],['seg','Segment'],['club','Club']]}];
 let srcPick='loy';const PICK=['aso','loy','tgt','sale'];
 let upKind=null;$('srcFile').onchange=e=>handleFiles(e.target.files,upKind);
-const REPO_NAMES={sale:'BC_San_luong_theo_KH_theo_SKU_-_THANG_2026.10.xlsx',loy:'DS_ASO_Tham_gia_Loyalty_DMP_-_THANG_2026.10.xlsx',aso:'Danh_sach_chi_tiet_ASO_-_THANG_2026.10.xlsx'};
+const REPO_NAMES={sale:'sale.xlsx.enc',loy:'loy.xlsx.enc',aso:'aso.xlsx.enc'};
 const kindByName=n=>{const x=norm(n);if(x.includes('san luong')||x.includes('sku'))return'sale';if(x.includes('loyal'))return'loy';if(x.includes('danh sach'))return'aso';return null};
 const srcMsgSet=t=>{const el=$('srcPushMsg');if(el)el.textContent=t};
 $('srcPush').onclick=()=>$('srcRepoFile').click();
@@ -922,8 +947,9 @@ $('srcRepoFile').onchange=async e=>{
   try{
     let sha=null;const g=await fetch(api+'?ref='+GH.branch,{headers:hdr});
     if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error('đọc '+g.status);
-    const buf=new Uint8Array(await f.arrayBuffer());let bin='';for(let i=0;i<buf.length;i+=0x8000)bin+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));
-    const p=await fetch(api,{method:'PUT',headers:hdr,body:JSON.stringify({message:`Cập nhật dữ liệu ${kind} ${new Date().toLocaleString('vi-VN')}`,content:btoa(bin),branch:GH.branch,...(sha?{sha}:{})})});
+    const pw=await ensurePw();
+    const bin=bytesToB64(await encryptRaw(pw,new Uint8Array(await f.arrayBuffer())));
+    const p=await fetch(api,{method:'PUT',headers:hdr,body:JSON.stringify({message:`Cập nhật dữ liệu ${kind} ${new Date().toLocaleString('vi-VN')}`,content:bin,branch:GH.branch,...(sha?{sha}:{})})});
     if(!p.ok)throw new Error('ghi '+p.status);
     srcMsgSet('Đã gửi lên repo. Trang sẽ cập nhật sau khoảng 2–3 phút (làm mới trang để xem).');
   }catch(err){srcMsgSet('Không gửi được ('+err.message+'). Kiểm tra token và quyền ghi của token.')}
